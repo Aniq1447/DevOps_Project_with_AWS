@@ -42,7 +42,8 @@ pipeline {
         stage("Trivy: Filesystem scan") {
             steps {
                 script {
-                    trivy_scan()
+                    // Added --scanners vuln,secret to bypass remote Maven POM dependency lookups
+                    sh "trivy fs --scanners vuln,secret ."
                 }
             }
         }
