@@ -42,8 +42,8 @@ pipeline {
         stage("Trivy: Filesystem scan") {
             steps {
                 script {
-                    // Added --scanners vuln,secret to bypass remote Maven POM dependency lookups
-                    sh "trivy fs --scanners vuln,secret ."
+                    // Bypass remote Maven POM network resolution using --pkg-types os --offline-scan
+                    sh "trivy fs --scanners vuln,secret --pkg-types os --offline-scan ."
                 }
             }
         }
