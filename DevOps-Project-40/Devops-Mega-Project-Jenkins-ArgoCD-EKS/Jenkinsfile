@@ -1,14 +1,15 @@
 @Library('Shared') _
+
 pipeline {
-    agent {label 'Node'}
+    agent { label 'Node' }
     
-    environment{
+    environment {
         SONAR_HOME = tool "Sonar"
     }
     
     parameters {
-        string(name: 'FRONTEND_DOCKER_TAG', defaultValue: '', description: 'Setting docker image for latest push')
-        string(name: 'BACKEND_DOCKER_TAG', defaultValue: '', description: 'Setting docker image for latest push')
+        string(name: 'FRONTEND_DOCKER_TAG', defaultValue: 'latest', description: 'Setting docker image for latest push')
+        string(name: 'BACKEND_DOCKER_TAG', defaultValue: 'latest', description: 'Setting docker image for latest push')
     }
     
     stages {
@@ -21,9 +22,10 @@ pipeline {
                 }
             }
         }
-        stage("Workspace cleanup"){
-            steps{
-                script{
+        
+        stage("Workspace cleanup") {
+            steps {
+                script {
                     cleanWs()
                 }
             }
@@ -31,60 +33,60 @@ pipeline {
         
         stage('Git: Code Checkout') {
             steps {
-                script{
-                    code_checkout("https://github.com/Aniq1447/DevOps-Projects/DevOps-Project-40/Devops-Mega-Project-Jenkins-ArgoCD-EKS","master")
+                script {
+                    code_checkout("https://github.com/Aniq1447/DevOps_Project_with_AWS.git", "master")
                 }
             }
         }
         
-        stage("Trivy: Filesystem scan"){
-            steps{
-                script{
+        stage("Trivy: Filesystem scan") {
+            steps {
+                script {
                     trivy_scan()
                 }
             }
         }
 
-        stage("OWASP: Dependency check"){
-            steps{
-                script{
+        stage("OWASP: Dependency check") {
+            steps {
+                script {
                     owasp_dependency()
                 }
             }
         }
         
-        stage("SonarQube: Code Analysis"){
-            steps{
-                script{
-                    sonarqube_analysis("Sonar","wanderlust","wanderlust")
+        stage("SonarQube: Code Analysis") {
+            steps {
+                script {
+                    sonarqube_analysis("Sonar", "wanderlust", "wanderlust")
                 }
             }
         }
         
-        stage("SonarQube: Code Quality Gates"){
-            steps{
-                script{
+        stage("SonarQube: Code Quality Gates") {
+            steps {
+                script {
                     sonarqube_code_quality()
                 }
             }
         }
         
         stage('Exporting environment variables') {
-            parallel{
-                stage("Backend env setup"){
+            parallel {
+                stage("Backend env setup") {
                     steps {
-                        script{
-                            dir("Automations"){
+                        script {
+                            dir("DevOps-Project-40/Devops-Mega-Project-Jenkins-ArgoCD-EKS/Automations") {
                                 sh "bash updatebackendnew.sh"
                             }
                         }
                     }
                 }
                 
-                stage("Frontend env setup"){
+                stage("Frontend env setup") {
                     steps {
-                        script{
-                            dir("Automations"){
+                        script {
+                            dir("DevOps-Project-40/Devops-Mega-Project-Jenkins-ArgoCD-EKS/Automations") {
                                 sh "bash updatefrontendnew.sh"
                             }
                         }
@@ -93,31 +95,32 @@ pipeline {
             }
         }
         
-        stage("Docker: Build Images"){
-            steps{
-                script{
-                        dir('backend'){
-                            docker_build("wanderlust-backend-beta","${params.BACKEND_DOCKER_TAG}","thatgeekcontainer")
-                        }
-                    
-                        dir('frontend'){
-                            docker_build("wanderlust-frontend-beta","${params.FRONTEND_DOCKER_TAG}","thatgeekcontainer")
-                        }
+        stage("Docker: Build Images") {
+            steps {
+                script {
+                    dir('DevOps-Project-40/Devops-Mega-Project-Jenkins-ArgoCD-EKS/backend') {
+                        docker_build("wanderlust-backend-beta", "${params.BACKEND_DOCKER_TAG}", "thatgeekcontainer")
+                    }
+                
+                    dir('DevOps-Project-40/Devops-Mega-Project-Jenkins-ArgoCD-EKS/frontend') {
+                        docker_build("wanderlust-frontend-beta", "${params.FRONTEND_DOCKER_TAG}", "thatgeekcontainer")
+                    }
                 }
             }
         }
         
-        stage("Docker: Push to DockerHub"){
-            steps{
-                script{
-                    docker_push("wanderlust-backend-beta","${params.BACKEND_DOCKER_TAG}","thatgeekcontainer") 
-                    docker_push("wanderlust-frontend-beta","${params.FRONTEND_DOCKER_TAG}","thatgeekcontainer")
+        stage("Docker: Push to DockerHub") {
+            steps {
+                script {
+                    docker_push("wanderlust-backend-beta", "${params.BACKEND_DOCKER_TAG}", "thatgeekcontainer") 
+                    docker_push("wanderlust-frontend-beta", "${params.FRONTEND_DOCKER_TAG}", "thatgeekcontainer")
                 }
             }
         }
     }
-    post{
-        success{
+    
+    post {
+        success {
             archiveArtifacts artifacts: '*.xml', followSymlinks: false
             build job: "Wanderlust-CD", parameters: [
                 string(name: 'FRONTEND_DOCKER_TAG', value: "${params.FRONTEND_DOCKER_TAG}"),
